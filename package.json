@@ -1,0 +1,41 @@
+{
+  "name": "waveform-draw",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-platform waveform timing diagram editor with bidirectional text/visual synchronization",
+  "keywords": [
+    "waveform",
+    "timing-diagram",
+    "digital-logic",
+    "verilog",
+    "vhdl",
+    "electronics"
+  ],
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "turbo": "^1.11.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/waveform-draw.git"
+  },
+  "license": "MIT"
+}

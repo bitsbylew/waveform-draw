@@ -1,0 +1,26 @@
+# Advanced Waveform Features
+# Demonstrates extended format capabilities
+
+@title: Advanced Waveform Example
+@description: Shows special states and multi-bit signals
+@unit: ns
+
+# Basic signals
+CLK: 01010101
+
+# Signal with unknown state (X)
+RESET: 00XXXX11
+
+# Signal with high-impedance state (Z)
+TRISTATE: ZZ1100ZZ
+
+# Future: Multi-bit bus notation
+# BUS[3:0]: 0123456789ABCDEF
+
+# Signal with custom label
+DATA: 00110011 "8-bit Data"
+
+# Multiple time markers
+@marker: 0 "Start"
+@marker: 4 "Mid"
+@marker: 8 "End"

@@ -1,0 +1,14 @@
+# Simple Waveform Example
+# This demonstrates the basic text format for waveform-draw
+
+# Clock signal - alternating high and low
+CLK: 01010101
+
+# Data signal - changes at different points
+DATA: 00110011
+
+# Enable signal - active for most of the time
+ENABLE: 11111111
+
+# Reset signal - low, then high
+RESET: 00111111
