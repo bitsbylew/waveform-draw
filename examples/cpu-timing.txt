@@ -1,0 +1,26 @@
+# CPU Read Cycle Timing Diagram
+# Demonstrates a typical memory read operation
+
+@title: CPU Memory Read Cycle
+@unit: ns
+@marker: 2 "Address Valid"
+@marker: 4 "Read Strobe"
+@marker: 6 "Data Valid"
+
+# Clock signal
+CLK: 0101010101010101
+
+# Address bus becomes valid at clock cycle 1
+ADDR_VALID: 0001111111111100
+
+# Read enable signal - active low
+READ_N: 1111001111111111
+
+# Chip select - active during read
+CS: 0001111111111100
+
+# Data bus - valid data appears after read strobe
+DATA_VALID: 0000000111111100
+
+# Wait state signal
+WAIT: 0000110000000000
