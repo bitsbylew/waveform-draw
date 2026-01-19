@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waveform Draw - Simple Timing Diagram Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>⚡ Waveform Draw</h1>
+            <p class="subtitle">Simple Timing Diagram Editor</p>
+        </header>
+
+        <!-- Main content area with split panes -->
+        <main class="main-content">
+            <!-- Text Editor Pane -->
+            <section class="pane text-pane">
+                <div class="pane-header">
+                    <h2>Text Editor</h2>
+                    <div class="toolbar">
+                        <button id="btnExample" class="btn" title="Load example">Example</button>
+                        <button id="btnClear" class="btn" title="Clear all">Clear</button>
+                        <button id="btnExport" class="btn" title="Export as PNG">Export PNG</button>
+                    </div>
+                </div>
+                <div class="pane-content">
+                    <textarea
+                        id="textEditor"
+                        class="text-editor"
+                        placeholder="# Enter your waveform definition
+# Example:
+CLK: 01010101
+DATA: 00110011
+ENABLE: 11111111
+
+# Format: SIGNAL_NAME: 01010101
+# 0 = low, 1 = high, X = unknown, Z = high-impedance"
+                        spellcheck="false"
+                    ></textarea>
+                </div>
+                <div class="pane-footer">
+                    <small class="help-text">
+                        Tip: Use 0/1 for logic levels, X for unknown, Z for high-impedance
+                    </small>
+                </div>
+            </section>
+
+            <!-- Waveform Display Pane -->
+            <section class="pane waveform-pane">
+                <div class="pane-header">
+                    <h2>Waveform Display</h2>
+                    <div class="toolbar">
+                        <button id="btnZoomIn" class="btn" title="Zoom in">+</button>
+                        <button id="btnZoomOut" class="btn" title="Zoom out">-</button>
+                        <button id="btnZoomReset" class="btn" title="Reset zoom">Reset</button>
+                    </div>
+                </div>
+                <div class="pane-content">
+                    <div class="canvas-container">
+                        <canvas id="waveformCanvas"></canvas>
+                    </div>
+                </div>
+                <div class="pane-footer">
+                    <small class="help-text" id="canvasInfo">
+                        Click on waveform to toggle states
+                    </small>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Built with vanilla HTML, CSS, and JavaScript |
+               <a href="https://github.com/yourusername/waveform-draw" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
