@@ -14,8 +14,27 @@ class WaveformApp {
         this.zoom = 1.0;
         this.stepWidth = 60;
         this.signalHeight = 60;
-        this.padding = { top: 40, left: 150, right: 40, bottom: 40 };
+        this.padding = { top: 40, left: 80, right: 40, bottom: 40 };
+        this.minLabelWidth = 80;
+        this.maxLabelWidth = 200;
         this.isLightMode = false;
+
+        // Scroll state
+        this.scrollX = 0;
+        this.scrollY = 0;
+        this.maxScrollX = 0;
+        this.maxScrollY = 0;
+
+        // Touch gesture state
+        this.touchState = {
+            pointers: new Map(),
+            lastPinchDistance: 0,
+            lastPinchCenter: { x: 0, y: 0 },
+            isPinching: false,
+            isDragging: false,
+            dragStart: { x: 0, y: 0 },
+            scrollStart: { x: 0, y: 0 }
+        };
 
         // Color configurations
         this.darkColors = {
@@ -55,6 +74,16 @@ class WaveformApp {
         this.canvas.addEventListener('click', (e) => this.onCanvasClick(e));
         this.canvas.addEventListener('mousemove', (e) => this.onCanvasHover(e));
 
+        // Wheel events (passive: false required to preventDefault)
+        this.canvas.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
+
+        // Pointer events for touch
+        this.canvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+        this.canvas.addEventListener('pointermove', (e) => this.onPointerMove(e));
+        this.canvas.addEventListener('pointerup', (e) => this.onPointerUp(e));
+        this.canvas.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+        this.canvas.addEventListener('pointerleave', (e) => this.onPointerUp(e));
+
         // Toolbar buttons
         document.getElementById('btnExample').addEventListener('click', () => this.loadExample());
         document.getElementById('btnClear').addEventListener('click', () => this.clearAll());
@@ -72,6 +101,7 @@ class WaveformApp {
         const container = this.canvas.parentElement;
         this.canvas.width = container.clientWidth;
         this.canvas.height = container.clientHeight;
+        this.updateScrollBounds();
         this.render();
     }
 
@@ -155,10 +185,20 @@ class WaveformApp {
             return;
         }
 
+        // Update label width based on signal names
+        this.updateLabelWidth();
+
+        // Update scroll bounds
+        this.updateScrollBounds();
+
         // Calculate dimensions
         const maxSteps = Math.max(...this.signals.map(s => s.states.length), 1);
         const scaledStepWidth = this.stepWidth * this.zoom;
         const drawWidth = maxSteps * scaledStepWidth;
+
+        // Apply scroll transform
+        this.ctx.save();
+        this.ctx.translate(-this.scrollX, -this.scrollY);
 
         // Draw grid
         this.drawGrid(maxSteps, scaledStepWidth);
@@ -171,6 +211,11 @@ class WaveformApp {
 
         // Draw time markers
         this.drawTimeMarkers(maxSteps, scaledStepWidth);
+
+        this.ctx.restore();
+
+        // Draw signal labels at fixed position (not scrolled)
+        this.drawSignalLabels();
     }
 
     drawGrid(steps, stepWidth) {
@@ -204,13 +249,6 @@ class WaveformApp {
         const midY = y + this.signalHeight / 2;
         const highY = y + 10;
         const lowY = y + this.signalHeight - 10;
-
-        // Draw signal name
-        this.ctx.fillStyle = this.colors.text;
-        this.ctx.font = '14px monospace';
-        this.ctx.textAlign = 'right';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(signal.name, left - 10, midY);
 
         // Draw waveform
         this.ctx.lineWidth = 2;
@@ -313,6 +351,70 @@ class WaveformApp {
         this.ctx.fillText('or click "Example" to load a sample', width / 2, height / 2 + 10);
     }
 
+    updateLabelWidth() {
+        this.ctx.font = '14px monospace';
+        const labelPadding = 20; // padding on left and right of label area
+
+        if (this.signals.length === 0) {
+            this.padding.left = this.minLabelWidth;
+            return;
+        }
+
+        // Find the widest signal name
+        let maxWidth = 0;
+        this.signals.forEach(signal => {
+            const width = this.ctx.measureText(signal.name).width;
+            maxWidth = Math.max(maxWidth, width);
+        });
+
+        // Clamp between min and max, add padding
+        this.padding.left = Math.min(
+            this.maxLabelWidth,
+            Math.max(this.minLabelWidth, maxWidth + labelPadding)
+        );
+    }
+
+    truncateText(text, maxWidth) {
+        const ellipsis = '...';
+        let width = this.ctx.measureText(text).width;
+
+        if (width <= maxWidth) return text;
+
+        // Binary search for the right length
+        let truncated = text;
+        while (width > maxWidth && truncated.length > 0) {
+            truncated = truncated.slice(0, -1);
+            width = this.ctx.measureText(truncated + ellipsis).width;
+        }
+
+        return truncated + ellipsis;
+    }
+
+    drawSignalLabels() {
+        const { top, left } = this.padding;
+
+        // Draw opaque background for entire label area
+        this.ctx.fillStyle = this.colors.background;
+        this.ctx.fillRect(0, 0, left, this.canvas.height);
+
+        // Draw labels
+        this.ctx.font = '14px monospace';
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'middle';
+
+        const labelX = 10;
+        const maxTextWidth = left - labelX - 10; // Leave some margin before waveform
+
+        this.signals.forEach((signal, index) => {
+            const y = top + index * this.signalHeight + this.signalHeight / 2 - this.scrollY;
+            if (y > 0 && y < this.canvas.height) {
+                const displayName = this.truncateText(signal.name, maxTextWidth);
+                this.ctx.fillStyle = this.colors.text;
+                this.ctx.fillText(displayName, labelX, y);
+            }
+        });
+    }
+
     // Canvas interaction: Click to toggle states
     onCanvasClick(e) {
         const rect = this.canvas.getBoundingClientRect();
@@ -364,11 +466,15 @@ class WaveformApp {
         const { top, left } = this.padding;
         const scaledStepWidth = this.stepWidth * this.zoom;
 
-        // Check if within signal area
-        if (x < left) return null;
+        // Account for scroll offset
+        const contentX = x + this.scrollX;
+        const contentY = y + this.scrollY;
 
-        const signalIndex = Math.floor((y - top) / this.signalHeight);
-        const stepIndex = Math.floor((x - left) / scaledStepWidth);
+        // Check if within signal area
+        if (contentX < left) return null;
+
+        const signalIndex = Math.floor((contentY - top) / this.signalHeight);
+        const stepIndex = Math.floor((contentX - left) / scaledStepWidth);
 
         if (signalIndex >= 0 && signalIndex < this.signals.length) {
             const signal = this.signals[signalIndex];
@@ -380,14 +486,131 @@ class WaveformApp {
         return null;
     }
 
+    // Scroll/Zoom methods
+    updateScrollBounds() {
+        const maxSteps = Math.max(...this.signals.map(s => s.states.length), 1);
+        const scaledStepWidth = this.stepWidth * this.zoom;
+        const contentWidth = this.padding.left + maxSteps * scaledStepWidth + this.padding.right;
+        const contentHeight = this.padding.top + this.signals.length * this.signalHeight + this.padding.bottom;
+
+        this.maxScrollX = Math.max(0, contentWidth - this.canvas.width);
+        this.maxScrollY = Math.max(0, contentHeight - this.canvas.height);
+
+        // Clamp current scroll
+        this.scrollX = Math.max(0, Math.min(this.maxScrollX, this.scrollX));
+        this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.scrollY));
+    }
+
+    panBy(deltaX, deltaY) {
+        this.scrollX = Math.max(0, Math.min(this.maxScrollX, this.scrollX + deltaX));
+        this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.scrollY + deltaY));
+        this.render();
+    }
+
+    zoomAtPoint(delta, cursorX, cursorY) {
+        const oldZoom = this.zoom;
+        const newZoom = Math.max(0.3, Math.min(3.0, this.zoom + delta));
+        if (oldZoom === newZoom) return;
+
+        // Keep point under cursor stationary
+        const contentX = (cursorX + this.scrollX - this.padding.left);
+        this.zoom = newZoom;
+        const zoomRatio = newZoom / oldZoom;
+        const newScrollX = contentX * zoomRatio - (cursorX - this.padding.left);
+
+        this.updateScrollBounds();
+        this.scrollX = Math.max(0, Math.min(this.maxScrollX, newScrollX));
+        this.render();
+    }
+
+    // Wheel event handler (desktop)
+    onWheel(e) {
+        e.preventDefault();
+
+        if (e.ctrlKey || e.metaKey) {
+            // Ctrl+scroll = zoom toward cursor
+            const zoomDelta = -e.deltaY * 0.001;
+            this.zoomAtPoint(zoomDelta, e.offsetX, e.offsetY);
+        } else if (e.shiftKey) {
+            // Shift+scroll = horizontal pan
+            this.panBy(e.deltaY, 0);
+        } else {
+            // Normal scroll = pan (both axes for trackpad support)
+            this.panBy(e.deltaX, e.deltaY);
+        }
+    }
+
+    // Touch gesture handlers (mobile)
+    onPointerDown(e) {
+        if (e.pointerType !== 'touch') return;
+        this.canvas.setPointerCapture(e.pointerId);
+        this.touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (this.touchState.pointers.size === 1) {
+            this.touchState.isDragging = true;
+            this.touchState.dragStart = { x: e.clientX, y: e.clientY };
+            this.touchState.scrollStart = { x: this.scrollX, y: this.scrollY };
+        } else if (this.touchState.pointers.size === 2) {
+            this.touchState.isDragging = false;
+            this.touchState.isPinching = true;
+            this.initPinch();
+        }
+    }
+
+    onPointerMove(e) {
+        if (e.pointerType !== 'touch' || !this.touchState.pointers.has(e.pointerId)) return;
+        this.touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (this.touchState.isPinching && this.touchState.pointers.size === 2) {
+            this.handlePinch();
+        } else if (this.touchState.isDragging && this.touchState.pointers.size === 1) {
+            this.handleDrag(e);
+        }
+    }
+
+    onPointerUp(e) {
+        if (e.pointerType !== 'touch') return;
+        this.touchState.pointers.delete(e.pointerId);
+        if (this.touchState.pointers.size < 2) this.touchState.isPinching = false;
+        if (this.touchState.pointers.size === 0) this.touchState.isDragging = false;
+    }
+
+    initPinch() {
+        const [p1, p2] = Array.from(this.touchState.pointers.values());
+        this.touchState.lastPinchDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        this.touchState.lastPinchCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    }
+
+    handlePinch() {
+        const [p1, p2] = Array.from(this.touchState.pointers.values());
+        const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+
+        const zoomDelta = (distance / this.touchState.lastPinchDistance - 1) * 0.5;
+        const rect = this.canvas.getBoundingClientRect();
+        this.zoomAtPoint(zoomDelta, center.x - rect.left, center.y - rect.top);
+
+        this.touchState.lastPinchDistance = distance;
+        this.touchState.lastPinchCenter = center;
+    }
+
+    handleDrag(e) {
+        const deltaX = this.touchState.dragStart.x - e.clientX;
+        const deltaY = this.touchState.dragStart.y - e.clientY;
+        this.scrollX = Math.max(0, Math.min(this.maxScrollX, this.touchState.scrollStart.x + deltaX));
+        this.scrollY = Math.max(0, Math.min(this.maxScrollY, this.touchState.scrollStart.y + deltaY));
+        this.render();
+    }
+
     // Zoom controls
     adjustZoom(delta) {
-        this.zoom = Math.max(0.3, Math.min(3.0, this.zoom + delta));
-        this.render();
+        this.zoomAtPoint(delta, this.canvas.width / 2, this.canvas.height / 2);
     }
 
     resetZoom() {
         this.zoom = 1.0;
+        this.scrollX = 0;
+        this.scrollY = 0;
         this.render();
     }
 

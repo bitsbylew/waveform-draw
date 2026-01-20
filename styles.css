@@ -166,7 +166,8 @@ body {
 .canvas-container {
     width: 100%;
     height: 100%;
-    overflow: auto;
+    overflow: hidden;  /* We handle scrolling manually */
+    touch-action: none;  /* Prevent browser touch gestures */
     background-color: var(--color-bg);
     position: relative;
 }
