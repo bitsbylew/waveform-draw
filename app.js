@@ -15,9 +15,10 @@ class WaveformApp {
         this.stepWidth = 60;
         this.signalHeight = 60;
         this.padding = { top: 40, left: 150, right: 40, bottom: 40 };
+        this.isLightMode = false;
 
-        // Configuration
-        this.colors = {
+        // Color configurations
+        this.darkColors = {
             high: '#4ade80',
             low: '#60a5fa',
             unknown: '#fbbf24',
@@ -26,6 +27,19 @@ class WaveformApp {
             grid: '#333',
             background: '#1a1a1a'
         };
+
+        this.lightColors = {
+            high: '#000000',
+            low: '#000000',
+            unknown: '#000000',
+            highz: '#000000',
+            text: '#000000',
+            grid: '#dddddd',
+            background: '#ffffff'
+        };
+
+        // Active colors (start with dark mode)
+        this.colors = { ...this.darkColors };
 
         // Initialize
         this.setupEventListeners();
@@ -48,6 +62,7 @@ class WaveformApp {
         document.getElementById('btnZoomIn').addEventListener('click', () => this.adjustZoom(0.1));
         document.getElementById('btnZoomOut').addEventListener('click', () => this.adjustZoom(-0.1));
         document.getElementById('btnZoomReset').addEventListener('click', () => this.resetZoom());
+        document.getElementById('btnThemeToggle').addEventListener('click', () => this.toggleTheme());
 
         // Window resize
         window.addEventListener('resize', () => this.setupCanvas());
@@ -410,6 +425,24 @@ READY: 11110000 "Device Ready"`;
         } catch (error) {
             alert('Failed to export PNG: ' + error.message);
         }
+    }
+
+    // Toggle between light and dark mode
+    toggleTheme() {
+        this.isLightMode = !this.isLightMode;
+
+        // Update colors
+        this.colors = this.isLightMode ? { ...this.lightColors } : { ...this.darkColors };
+
+        // Toggle CSS class on body
+        document.body.classList.toggle('light-mode', this.isLightMode);
+
+        // Update button text
+        const btn = document.getElementById('btnThemeToggle');
+        btn.textContent = this.isLightMode ? 'Dark Mode' : 'Light Mode';
+
+        // Re-render canvas with new colors
+        this.render();
     }
 }
 

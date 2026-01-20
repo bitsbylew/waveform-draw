@@ -12,20 +12,34 @@
         <header class="header">
             <h1>⚡ Waveform Draw</h1>
             <p class="subtitle">Simple Timing Diagram Editor</p>
+            <button id="btnThemeToggle" class="btn theme-toggle" title="Toggle light/dark mode">Light Mode</button>
         </header>
 
-        <!-- Main content area with split panes -->
+        <!-- Main content area with horizontal split -->
         <main class="main-content">
-            <!-- Text Editor Pane -->
-            <section class="pane text-pane">
+            <!-- Waveform Display Pane (Top) -->
+            <section class="pane waveform-pane">
                 <div class="pane-header">
-                    <h2>Text Editor</h2>
+                    <div class="toolbar-left">
+                        <span class="pane-title">Waveform Display</span>
+                        <small class="help-text" id="canvasInfo">Click on waveform to toggle states</small>
+                    </div>
                     <div class="toolbar">
-                        <button id="btnExample" class="btn" title="Load example">Example</button>
-                        <button id="btnClear" class="btn" title="Clear all">Clear</button>
+                        <button id="btnZoomOut" class="btn" title="Zoom out">-</button>
+                        <button id="btnZoomReset" class="btn" title="Reset zoom">Reset</button>
+                        <button id="btnZoomIn" class="btn" title="Zoom in">+</button>
                         <button id="btnExport" class="btn" title="Export as PNG">Export PNG</button>
                     </div>
                 </div>
+                <div class="pane-content">
+                    <div class="canvas-container">
+                        <canvas id="waveformCanvas"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Text Editor Pane (Bottom) -->
+            <section class="pane text-pane">
                 <div class="pane-content">
                     <textarea
                         id="textEditor"
@@ -41,41 +55,20 @@ ENABLE: 11111111
                         spellcheck="false"
                     ></textarea>
                 </div>
-                <div class="pane-footer">
-                    <small class="help-text">
-                        Tip: Use 0/1 for logic levels, X for unknown, Z for high-impedance
-                    </small>
-                </div>
-            </section>
-
-            <!-- Waveform Display Pane -->
-            <section class="pane waveform-pane">
-                <div class="pane-header">
-                    <h2>Waveform Display</h2>
-                    <div class="toolbar">
-                        <button id="btnZoomIn" class="btn" title="Zoom in">+</button>
-                        <button id="btnZoomOut" class="btn" title="Zoom out">-</button>
-                        <button id="btnZoomReset" class="btn" title="Reset zoom">Reset</button>
-                    </div>
-                </div>
-                <div class="pane-content">
-                    <div class="canvas-container">
-                        <canvas id="waveformCanvas"></canvas>
-                    </div>
-                </div>
-                <div class="pane-footer">
-                    <small class="help-text" id="canvasInfo">
-                        Click on waveform to toggle states
-                    </small>
-                </div>
             </section>
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Built with vanilla HTML, CSS, and JavaScript |
-               <a href="https://github.com/yourusername/waveform-draw" target="_blank">GitHub</a>
-            </p>
+        <!-- Bottom Bar -->
+        <footer class="bottom-bar">
+            <div class="toolbar-left">
+                <small class="help-text">
+                    Tip: Use 0/1 for logic levels, X for unknown, Z for high-impedance
+                </small>
+            </div>
+            <div class="toolbar">
+                <button id="btnExample" class="btn" title="Load example">Example</button>
+                <button id="btnClear" class="btn" title="Clear all">Clear</button>
+            </div>
         </footer>
     </div>
 
